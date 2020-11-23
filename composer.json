@@ -1,0 +1,48 @@
+{
+    "name": "defstudio/template-processor",
+    "description": ".odt to .odt/.docx/.doc/.pdf template processor and exporter",
+    "type": "library",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Fabio Ivona",
+            "email": "fabio.ivona@defstudio.it",
+            "homepage": "https://defstudio.it",
+            "role": "Developer"
+        },
+        {
+            "name": "Daniele Romeo",
+            "email": "danieleromeo@defstudio.it",
+            "homepage": "https://defstudio.it",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^7.4",
+        "illuminate/support": "^8.0",
+        "symfony/process": "^5.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "DefStudio\\TemplateProcessor\\": "src"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "DefStudio\\TemplateProcessor\\ServiceProvider"
+            ],
+            "aliases": {
+                "Template": "DefStudio\\TemplateProcessor\\Template"
+            }
+        }
+    }
+}
