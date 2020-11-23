@@ -22,7 +22,8 @@
     "require": {
         "php": "^7.4",
         "illuminate/support": "^8.0",
-        "symfony/process": "^5.1"
+        "symfony/process": "^5.1",
+        "phpoffice/phpword": "^0.17.0"
     },
     "autoload": {
         "psr-4": {
@@ -41,7 +42,7 @@
                 "DefStudio\\TemplateProcessor\\ServiceProvider"
             ],
             "aliases": {
-                "Template": "DefStudio\\TemplateProcessor\\Template"
+                "Template": "DefStudio\\TemplateProcessor\\Facades\\TemplateFacade"
             }
         }
     }

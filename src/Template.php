@@ -2,15 +2,16 @@
 
 namespace DefStudio\TemplateProcessor;
 
+use DefStudio\TemplateProcessor\Exceptions\TemplateProcessingException;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use PhpOffice\PhpWord\TemplateProcessor;
 use Symfony\Component\Process\Process;
 
 /**
  * Class Template
  * @package DefStudio\TemplateProcessor
  *
- * @noinspection PhpUndefinedClassInspection
  */
 class Template
 {
@@ -19,6 +20,8 @@ class Template
     protected string $template_file;
 
     protected string $compiled_file;
+
+    protected TemplateProcessor $template_processor;
 
     public function __construct(string $template_file = '')
     {
@@ -33,6 +36,43 @@ class Template
         return $this;
     }
 
+    public function compile(array $data): self
+    {
+        foreach ($data as $key => $content) {
+            if (is_array($content)) {
+                $this->clone($key, count($content), $content);
+            } else {
+                $this->set($key, $content);
+            }
+        }
+
+        return $this;
+    }
+
+    public function set(string $key, string $value): self
+    {
+        $this->template_processor()->setValue($key, $value);
+
+        return $this;
+    }
+
+    public function clone(string $block_name, int $times = 1, array $variable_replacements = []): self
+    {
+        $this->template_processor()->cloneBlock($block_name, $times, true, false, $variable_replacements);
+
+        return $this;
+    }
+
+    protected function template_processor(): TemplateProcessor
+    {
+        return $this->template_processor ??= new TemplateProcessor($this->template_file);
+    }
+
+    /**
+     * @param string $output_file
+     * @return string
+     * @throws TemplateProcessingException
+     */
     public function to_pdf(string $output_file)
     {
 
@@ -50,14 +90,46 @@ class Template
             $compiled_file
         ]);
 
-        if (!$process->isSuccessful()) {
+        $process->run();
 
+        if (!$process->isSuccessful()) {
+            throw TemplateProcessingException::symfony_process_error($process);
         }
+
+        $temporary_result_file = Str::of($temporary_directory)
+            ->append(DIRECTORY_SEPARATOR)
+            ->append($this->set_extension($this->get_filename($compiled_file), 'pdf'));
+
+        if (!File::exists($temporary_result_file)) {
+            throw TemplateProcessingException::missing_converted_file($temporary_result_file);
+        }
+
+        File::move($temporary_result_file, $this->set_extension($output_file, 'pdf'));
+
+        return $output_file;
     }
 
     protected function compiled_file(): string
     {
-        return $this->compiled_file ??= $this->template_file;
+
+        if (empty($this->compiled_file)) {
+
+            if (empty($this->template_processor)) {
+                $this->compiled_file = $this->template_file;
+            } else {
+
+                $compiled_file = Str::of($this->temporary_directory())
+                    ->append(DIRECTORY_SEPARATOR)
+                    ->append(Str::uuid())
+                    ->append(".docx");
+
+                $this->template_processor()->saveAs($compiled_file);
+
+                $this->compiled_file = $compiled_file;
+            }
+        }
+
+        return $this->compiled_file;
     }
 
     protected function temporary_directory(): string

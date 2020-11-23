@@ -6,7 +6,7 @@ namespace DefStudio\TemplateProcessor\Facades;
 
 use Illuminate\Support\Facades\Facade;
 
-class Template extends Facade
+class TemplateFacade extends Facade
 {
     protected static function getFacadeAccessor()
     {
