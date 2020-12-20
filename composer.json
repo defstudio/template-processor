@@ -20,7 +20,7 @@
         }
     ],
     "require": {
-        "php": "^7.4",
+        "php": "^7.4|^8.0",
         "illuminate/support": "^8.0",
         "symfony/process": "^5.1",
         "phpoffice/phpword": "^0.17.0"
