@@ -6,6 +6,7 @@ use DefStudio\TemplateProcessor\Exceptions\TemplateProcessingException;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use PhpOffice\PhpWord\TemplateProcessor;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\Process\Process;
 
 /**
@@ -15,6 +16,8 @@ use Symfony\Component\Process\Process;
  */
 class Template
 {
+    protected string $target_extension = 'docx';
+
     protected string $temporary_directory;
 
     protected string $template_file;
@@ -68,12 +71,42 @@ class Template
         return $this->template_processor ??= new TemplateProcessor($this->template_file);
     }
 
-    /**
-     * @param string $output_file
-     * @return string
-     * @throws TemplateProcessingException
-     */
-    public function to_pdf(string $output_file)
+    public function download(string $downloaded_filename): BinaryFileResponse
+    {
+        $output_file = $this->temporary_directory()."/temp";
+
+        ob_end_clean();
+
+        if($this->target_extension=='pdf'){
+            return response()->download($this->to_pdf_file($output_file.".pdf"), $downloaded_filename);
+        }
+
+        return response()->download($this->to_docx_file($output_file.".docx"), $downloaded_filename);
+    }
+
+    public function store(string $output_file): self
+    {
+        if($this->target_extension=='pdf'){
+            return $this->to_pdf_file($output_file);
+        }
+
+        return $this->to_docx_file($output_file);
+    }
+
+    protected function to_docx_file(string $output_file): string
+    {
+        $compiled_file = $this->compiled_file();
+        File::move($compiled_file, $this->set_extension($output_file, 'docx'));
+        return $output_file;
+    }
+
+    public function to_pdf(): self
+    {
+        $this->target_extension = 'pdf';
+        return $this;
+    }
+
+    protected function to_pdf_file(string $output_file): string
     {
 
         $compiled_file = $this->compiled_file();
