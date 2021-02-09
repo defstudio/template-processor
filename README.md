@@ -11,3 +11,20 @@ RUN if [ ${ENABLE_LIBREOFFICE_WRITER} = 1 ] ; then \
     && apt-get install -y --no-install-recommends libreoffice-java-common ;\
 fi;
 ```
+
+###Usage
+
+```php
+Template::from($dock_template_path)
+        ->compile([
+            'single_key' => 'BAR',
+            'array_key' => ['FOO', 'BAZ'],
+        ])
+        
+        ->to_pdf() //add ->to_pdf() to convert to .pdf, otherwise a .docx file will be built
+        
+        
+        ->store($output_file)
+        //or
+        ->download($dowloaded_file_name)
+```
