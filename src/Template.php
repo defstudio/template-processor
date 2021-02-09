@@ -84,7 +84,7 @@ class Template
         return response()->download($this->to_docx_file($output_file.".docx"), $downloaded_filename);
     }
 
-    public function store(string $output_file): self
+    public function store(string $output_file): string
     {
         if($this->target_extension=='pdf'){
             return $this->to_pdf_file($output_file);
