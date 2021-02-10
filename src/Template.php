@@ -1,4 +1,9 @@
 <?php
+/*
+ * Copyright (C) 2021. Def Studio
+ *  Unauthorized copying of this file, via any medium is strictly prohibited
+ *  Authors: Fabio Ivona <fabio.ivona@defstudio.it> & Daniele Romeo <danieleromeo@defstudio.it>
+ */
 
 namespace DefStudio\TemplateProcessor;
 
@@ -11,6 +16,7 @@ use Symfony\Component\Process\Process;
 
 /**
  * Class Template
+ *
  * @package DefStudio\TemplateProcessor
  *
  */
@@ -59,10 +65,15 @@ class Template
         return $this;
     }
 
+    public function remove(string $block_name): self
+    {
+        $this->template_processor()->deleteBlock($block_name);
+        return $this;
+    }
+
     public function clone(string $block_name, int $times = 1, array $variable_replacements = []): self
     {
         $this->template_processor()->cloneBlock($block_name, $times, true, false, $variable_replacements);
-
         return $this;
     }
 
@@ -77,7 +88,7 @@ class Template
 
         ob_end_clean();
 
-        if($this->target_extension=='pdf'){
+        if ($this->target_extension == 'pdf') {
             return response()->download($this->to_pdf_file($output_file.".pdf"), $downloaded_filename);
         }
 
@@ -86,7 +97,7 @@ class Template
 
     public function store(string $output_file): string
     {
-        if($this->target_extension=='pdf'){
+        if ($this->target_extension == 'pdf') {
             return $this->to_pdf_file($output_file);
         }
 
@@ -120,7 +131,7 @@ class Template
             'pdf',
             '--outdir',
             $temporary_directory,
-            $compiled_file
+            $compiled_file,
         ]);
 
         $process->run();
