@@ -58,7 +58,7 @@ class Template
         return $this;
     }
 
-    public function set(string|null $key, string $value): self
+    public function set(string $key, string|null $value): self
     {
         $this->template_processor()->setValue($key, $value??'');
 
