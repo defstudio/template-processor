@@ -142,13 +142,17 @@ class Template
 
         $temporary_result_file = Str::of($temporary_directory)
             ->append(DIRECTORY_SEPARATOR)
-            ->append($this->set_extension($this->get_filename($compiled_file), 'pdf'));
+            ->append($this->set_extension($this->get_filename($compiled_file), 'pdf'))
+            ->replace("/./", '/');
 
         if (!File::exists($temporary_result_file)) {
             throw TemplateProcessingException::missing_converted_file($temporary_result_file);
         }
 
-        File::move($temporary_result_file, $this->set_extension($output_file, 'pdf'));
+
+        $temporary_result_file = (string) $temporary_result_file;
+        $output_file = (string) $this->set_extension($output_file, 'pdf');
+        File::move($temporary_result_file, $output_file);
 
         return $output_file;
     }
