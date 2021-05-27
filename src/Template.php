@@ -49,6 +49,9 @@ class Template
 
     public function compile(array $data): self
     {
+        $data = dot_collect($data)
+            ->map(fn (string|null $value) => (string) str($value ?? '')->replace('&', '&amp;'))
+            ->toArray();
         foreach ($data as $key => $content) {
             if (is_array($content)) {
                 $this->clone($key, count($content), $content);
