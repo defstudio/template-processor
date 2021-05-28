@@ -39,7 +39,6 @@ class Template
 
     public function from($template_file): self
     {
-
         $this->template_file = $template_file;
         $this->compiled_file = "";
         $this->temporary_directory = "";
@@ -116,15 +115,16 @@ class Template
         return $output_file;
     }
 
-    public function to_pdf(): self
+    public function to_pdf($convert_to_pdf = true): self
     {
-        $this->target_extension = 'pdf';
+        if ($convert_to_pdf) {
+            $this->target_extension = 'pdf';
+        }
         return $this;
     }
 
     protected function to_pdf_file(string $output_file): string
     {
-
         $compiled_file = $this->compiled_file();
 
         $temporary_directory = $this->temporary_directory();
@@ -164,13 +164,10 @@ class Template
 
     protected function compiled_file(): string
     {
-
         if (empty($this->compiled_file)) {
-
             if (empty($this->template_processor)) {
                 $this->compiled_file = $this->template_file;
             } else {
-
                 $compiled_file = Str::of($this->temporary_directory())
                     ->append(DIRECTORY_SEPARATOR)
                     ->append(Str::uuid())
@@ -187,7 +184,6 @@ class Template
 
     protected function temporary_directory(): string
     {
-
         if (empty($this->temporary_directory)) {
             $temp_dir = Str::of(sys_get_temp_dir())
                 ->append(DIRECTORY_SEPARATOR)
@@ -201,7 +197,6 @@ class Template
         }
 
         return $this->temporary_directory;
-
     }
 
     protected function set_extension(string $file, string $ext): string
@@ -235,5 +230,4 @@ class Template
     {
         return File::extension($file);
     }
-
 }
