@@ -8,6 +8,7 @@
 namespace DefStudio\TemplateProcessor;
 
 use DefStudio\TemplateProcessor\Exceptions\TemplateProcessingException;
+use DefStudio\TemplateProcessor\Helpers\OdtTemplateProcessor;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -64,7 +65,7 @@ class Template
 
     public function set(string $key, string|null $value): self
     {
-        $this->template_processor()->setValue($key, $value??'');
+        $this->template_processor()->setValue($key, $value ?? '');
 
         return $this;
     }
@@ -77,13 +78,23 @@ class Template
 
     public function clone(string $block_name, int $times = 1, array $variable_replacements = []): self
     {
-        $this->template_processor()->cloneBlock($block_name, $times, true, false, $variable_replacements);
+        $this->template_processor()->cloneBlock(
+            blockname: $block_name,
+            clones: $times,
+            variableReplacements: $variable_replacements
+        );
         return $this;
     }
 
-    protected function template_processor(): TemplateProcessor
+    /** @noinspection PhpUnhandledExceptionInspection */
+    protected function template_processor(): TemplateProcessor|OdtTemplateProcessor
     {
-        return $this->template_processor ??= new TemplateProcessor($this->template_file);
+        if (str($this->template_file)->endsWith('.docx')) {
+            return $this->template_processor ??= new TemplateProcessor($this->template_file);
+        } else {
+            return $this->template_processor ??= new OdtTemplateProcessor($this->template_file);
+        }
+
     }
 
     public function download(string $downloaded_filename): BinaryFileResponse
@@ -168,13 +179,18 @@ class Template
             if (empty($this->template_processor)) {
                 $this->compiled_file = $this->template_file;
             } else {
-                $compiled_file = Str::of($this->temporary_directory())
-                    ->append(DIRECTORY_SEPARATOR)
-                    ->append(Str::uuid())
-                    ->append(".docx");
-
+                if ($this->template_processor() instanceof OdtTemplateProcessor) {
+                    $compiled_file = Str::of($this->temporary_directory())
+                        ->append(DIRECTORY_SEPARATOR)
+                        ->append(Str::uuid())
+                        ->append(".odt");
+                } else {
+                    $compiled_file = Str::of($this->temporary_directory())
+                        ->append(DIRECTORY_SEPARATOR)
+                        ->append(Str::uuid())
+                        ->append(".docx");
+                }
                 $this->template_processor()->saveAs($compiled_file);
-
                 $this->compiled_file = $compiled_file;
             }
         }
