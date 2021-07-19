@@ -31,7 +31,7 @@ class Template
 
     protected string $compiled_file;
 
-    protected TemplateProcessor $template_processor;
+    protected TemplateProcessor|OdtTemplateProcessor $template_processor;
 
     public function __construct(string $template_file = '')
     {
