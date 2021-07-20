@@ -31,7 +31,8 @@ class Template
 
     protected string $compiled_file;
 
-    protected TemplateProcessor|OdtTemplateProcessor $template_processor;
+    /** @var TemplateProcessor|OdtTemplateProcessor */
+    protected $template_processor;
 
     public function __construct(string $template_file = '')
     {
@@ -49,9 +50,6 @@ class Template
 
     public function compile(array $data): self
     {
-        $data = dot_collect($data)
-            ->map(fn (string|null $value) => (string) str($value ?? '')->replace('&amp;', '&')->replace('&', '&amp;'))
-            ->toArray();
         foreach ($data as $key => $content) {
             if (is_array($content)) {
                 $this->clone($key, count($content), $content);
@@ -65,9 +63,23 @@ class Template
 
     public function set(string $key, string|null $value): self
     {
-        $this->template_processor()->setValue($key, $value ?? '');
+        $this->template_processor()->setValue(
+            $key,
+            $this->prepare_data_for_template($value)
+        );
 
         return $this;
+    }
+
+    public function prepare_data_for_template(string|null $text): string
+    {
+        $text = str($text ?? '');
+        if ($this->template_processor() instanceof TemplateProcessor) {
+            $text = $text->replace("\n", '</w:t><w:br/><w:t>');
+        } else {
+            $text = $text->replace("\n", '<text:line-break/>');
+        }
+        return $text->replace('&amp;', '&')->replace('&', '&amp;');
     }
 
     public function remove(string $block_name): self
