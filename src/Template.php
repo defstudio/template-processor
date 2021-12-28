@@ -23,6 +23,10 @@ use Symfony\Component\Process\Process;
  */
 class Template
 {
+    public const ODT_LINE_BREAK = '<text:line-break/>';
+    public const DOCX_LINE_BREAK = '</w:t><w:br/><w:t>';
+
+
     protected string $target_extension = 'docx';
 
     protected string $temporary_directory;
@@ -75,9 +79,9 @@ class Template
     {
         $text = str($text ?? '');
         if ($this->template_processor() instanceof TemplateProcessor) {
-            $text = $text->replace("\n", '</w:t><w:br/><w:t>');
+            $text = $text->replace("\n", self::DOCX_LINE_BREAK);
         } else {
-            $text = $text->replace("\n", '<text:line-break/>');
+            $text = $text->replace("\n", self::ODT_LINE_BREAK);
         }
         return $text->replace('&amp;', '&')->replace('&', '&amp;');
     }
