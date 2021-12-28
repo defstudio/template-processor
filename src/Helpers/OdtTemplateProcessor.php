@@ -39,7 +39,7 @@ class OdtTemplateProcessor
 
     public function setValue(string $key, string $value)
     {
-        $this->content = str_replace('{'.$key.'}', $value, $this->content);
+        $this->content = str_replace('${'.$key.'}', $value, $this->content);
     }
 
     public function deleteBlock(string $blockname)
