@@ -51,15 +51,15 @@ class OdtTemplateProcessor
     {
         $matches = [];
 
-        $regexp = '/';
+        $regexp = '/';               //Regexp start
         $regexp .= '<[\w>\"=\-: ]*'; //<tag> before section opening
-        $regexp .= '{section}';      //section keyword
+        $regexp .= "{{$blockname}}";      //section keyword
         $regexp .= '<\/text:p>';     //</tag> after section opening
         $regexp .= '(.*)';           //text to repeat
         $regexp .= '<[\w>\"=\-: ]*'; //<tag> before section closing
-        $regexp .= '{\/section}';    //section section keyword
+        $regexp .= "{\/{$blockname}}";    //section section keyword
         $regexp .= '<\/text:p>';    //</tag> after section opening
-        $regexp .= '/m';
+        $regexp .= '/m';            //Regexp end (m = multiline)
 
         preg_match($regexp, $this->content, $matches);
         $section_to_replace = $matches[0] ?? '';
@@ -69,9 +69,12 @@ class OdtTemplateProcessor
         for ($copy = 0; $copy < $clones; $copy++) {
             $text_to_copy = $text_to_repeat;
 
-            foreach ($variableReplacements as $key => $value) {
-                $text_to_copy = str_replace($key, $value, $text_to_copy);
+            $variables_to_replace = $variableReplacements[$copy] ?? [];
+
+            foreach ($variables_to_replace as $key => $value) {
+                $text_to_copy = str_replace('${'.$key.'}', $value, $text_to_copy);
             }
+
             $text_to_replace .= $text_to_copy;
         }
 
