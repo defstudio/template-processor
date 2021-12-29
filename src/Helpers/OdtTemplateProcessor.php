@@ -9,6 +9,7 @@
 
 namespace DefStudio\TemplateProcessor\Helpers;
 
+use DefStudio\TemplateProcessor\Template;
 use PhpOffice\PhpWord\Exception\CopyFileException;
 use PhpOffice\PhpWord\Exception\CreateTemporaryFileException;
 use ZipArchive;
@@ -39,8 +40,22 @@ class OdtTemplateProcessor
 
     public function setValue(string $key, string $value)
     {
-        $this->content = str_replace('${'.$key.'}', $value, $this->content);
-        $this->content = str_replace('{'.$key.'}', $value, $this->content);
+        $this->content = $this->replace_key($this->content, $key, $value);
+    }
+
+    private function replace_key(string $text, string $key, string $value): string
+    {
+        $value = str($value)
+            ->replace("\r\n", Template::ODT_LINE_BREAK)
+            ->replace("\n", Template::ODT_LINE_BREAK)
+            ->replace('&amp;', '&')
+            ->replace('&', '&amp;');
+
+        $text = str($text)
+            ->replace('${'.$key.'}', $value)
+            ->replace('{'.$key.'}', $value);
+
+        return $text;
     }
 
     public function deleteBlock(string $blockname)
@@ -70,11 +85,10 @@ class OdtTemplateProcessor
         for ($copy = 0; $copy < $clones; $copy++) {
             $text_to_copy = $text_to_repeat;
 
-            $variables_to_replace = $variableReplacements[$copy] ?? [];
+            $variables_to_replace = array_shift($variableReplacements) ?? [];
 
             foreach ($variables_to_replace as $key => $value) {
-                $text_to_copy = str_replace('${'.$key.'}', $value, $text_to_copy);
-                $text_to_copy = str_replace('{'.$key.'}', $value, $text_to_copy);
+                $text_to_copy = $this->replace_key($text_to_copy, $key, $value);
             }
 
             $text_to_replace .= $text_to_copy;

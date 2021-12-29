@@ -77,13 +77,15 @@ class Template
 
     public function prepare_data_for_template(string|null $text): string
     {
-        $text = str($text ?? '');
         if ($this->template_processor() instanceof TemplateProcessor) {
-            $text = $text->replace("\n", self::DOCX_LINE_BREAK);
-        } else {
-            $text = $text->replace("\n", self::ODT_LINE_BREAK);
+            $text = str($text ?? '')
+                ->replace("\r\n", self::DOCX_LINE_BREAK)
+                ->replace("\n", self::DOCX_LINE_BREAK)
+                ->replace('&amp;', '&')
+                ->replace('&', '&amp;');
         }
-        return $text->replace('&amp;', '&')->replace('&', '&amp;');
+
+        return $text;
     }
 
     public function remove(string $block_name): self
