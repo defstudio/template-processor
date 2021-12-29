@@ -40,6 +40,7 @@ class OdtTemplateProcessor
     public function setValue(string $key, string $value)
     {
         $this->content = str_replace('${'.$key.'}', $value, $this->content);
+        $this->content = str_replace('{'.$key.'}', $value, $this->content);
     }
 
     public function deleteBlock(string $blockname)
@@ -73,6 +74,7 @@ class OdtTemplateProcessor
 
             foreach ($variables_to_replace as $key => $value) {
                 $text_to_copy = str_replace('${'.$key.'}', $value, $text_to_copy);
+                $text_to_copy = str_replace('{'.$key.'}', $value, $text_to_copy);
             }
 
             $text_to_replace .= $text_to_copy;
