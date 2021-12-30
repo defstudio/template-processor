@@ -36,6 +36,51 @@ class OdtTemplateProcessor
         $this->zip->open($this->temporary_template_file);
 
         $this->content = $this->zip->getFromName('content.xml');
+
+        $this->cleanup_content();
+    }
+
+    public function cleanup_content(): void
+    {
+        $characters = str_split($this->content);
+
+        $clean_content = '';
+        $current_variable = '';
+        $status = 'outside_variable';
+
+        foreach ($characters as $char) {
+            switch ($status) {
+                case 'outside_variable':
+                    $clean_content .= $char;
+                    if ($char != '$') {
+                        break;
+                    }
+
+                    $status = 'maybe_started_variable';
+                    break;
+                case 'maybe_started_variable':
+                    $clean_content .= $char;
+
+                    if ($char != '{') {
+                        break;
+                    }
+
+                    $status = 'inside_variable';
+                    $current_variable = '';
+                    break;
+                case 'inside_variable':
+                    $current_variable .= $char;
+                    if ($char == '}') {
+                        $status = 'outside_variable';
+                        $current_variable = preg_replace('/<[^>]*>/', '', $current_variable);
+                        $clean_content .= $current_variable;
+                    }
+                    break;
+            }
+        }
+
+
+        $this->content = $clean_content;
     }
 
     public function setValue(string $key, string $value)
@@ -52,8 +97,7 @@ class OdtTemplateProcessor
             ->replace('&', '&amp;');
 
         $text = str($text)
-            ->replace('${'.$key.'}', $value)
-            ->replace('{'.$key.'}', $value);
+            ->replace('${'.$key.'}', $value);
 
         return $text;
     }
