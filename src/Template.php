@@ -194,23 +194,19 @@ class Template
     protected function compiled_file(): string
     {
         if (empty($this->compiled_file)) {
-            if (empty($this->template_processor)) {
-                $this->compiled_file = $this->template_file;
+            if ($this->template_processor() instanceof OdtTemplateProcessor) {
+                $compiled_file = Str::of($this->temporary_directory())
+                    ->append(DIRECTORY_SEPARATOR)
+                    ->append(Str::uuid())
+                    ->append(".odt");
             } else {
-                if ($this->template_processor() instanceof OdtTemplateProcessor) {
-                    $compiled_file = Str::of($this->temporary_directory())
-                        ->append(DIRECTORY_SEPARATOR)
-                        ->append(Str::uuid())
-                        ->append(".odt");
-                } else {
-                    $compiled_file = Str::of($this->temporary_directory())
-                        ->append(DIRECTORY_SEPARATOR)
-                        ->append(Str::uuid())
-                        ->append(".docx");
-                }
-                $this->template_processor()->saveAs($compiled_file);
-                $this->compiled_file = $compiled_file;
+                $compiled_file = Str::of($this->temporary_directory())
+                    ->append(DIRECTORY_SEPARATOR)
+                    ->append(Str::uuid())
+                    ->append(".docx");
             }
+            $this->template_processor()->saveAs($compiled_file);
+            $this->compiled_file = $compiled_file;
         }
 
         return $this->compiled_file;
