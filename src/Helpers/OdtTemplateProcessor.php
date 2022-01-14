@@ -19,6 +19,7 @@ class OdtTemplateProcessor
     private string $temporary_template_file;
     private ZipArchive $zip;
     private string $content;
+    private string $styles;
 
     public function __construct(string $template)
     {
@@ -35,23 +36,23 @@ class OdtTemplateProcessor
         $this->zip = new ZipArchive();
         $this->zip->open($this->temporary_template_file);
 
-        $this->content = $this->zip->getFromName('content.xml');
+        $this->content = $this->cleanup_text($this->zip->getFromName('content.xml'));
+        $this->styles = $this->cleanup_text($this->zip->getFromName('styles.xml'));
 
-        $this->cleanup_content();
     }
 
-    public function cleanup_content(): void
+    private function cleanup_text(string $text): string
     {
-        $characters = str_split($this->content);
+        $characters = str_split($text);
 
-        $clean_content = '';
+        $clean_text = '';
         $current_variable = '';
         $status = 'outside_variable';
 
         foreach ($characters as $char) {
             switch ($status) {
                 case 'outside_variable':
-                    $clean_content .= $char;
+                    $clean_text .= $char;
                     if ($char != '$') {
                         break;
                     }
@@ -59,7 +60,7 @@ class OdtTemplateProcessor
                     $status = 'maybe_started_variable';
                     break;
                 case 'maybe_started_variable':
-                    $clean_content .= $char;
+                    $clean_text .= $char;
 
                     if ($char != '{') {
                         break;
@@ -73,19 +74,20 @@ class OdtTemplateProcessor
                     if ($char == '}') {
                         $status = 'outside_variable';
                         $current_variable = preg_replace('/<[^>]*>/', '', $current_variable);
-                        $clean_content .= $current_variable;
+                        $clean_text .= $current_variable;
                     }
                     break;
             }
         }
 
 
-        $this->content = $clean_content;
+        return $clean_text;
     }
 
     public function setValue(string $key, string $value)
     {
         $this->content = $this->replace_key($this->content, $key, $value);
+        $this->styles = $this->replace_key($this->styles, $key, $value);
     }
 
     private function replace_key(string $text, string $key, string $value): string
@@ -109,20 +111,25 @@ class OdtTemplateProcessor
 
     public function cloneBlock(string $blockname, int $clones = 1, array $variableReplacements = [])
     {
+        $this->content = $this->applyCloneBlock($this->content, $blockname, $clones, $variableReplacements);
+        $this->styles = $this->applyCloneBlock($this->styles, $blockname, $clones, $variableReplacements);
+    }
+
+    private function applyCloneBlock(string $text, string $blockname, int $clones, array $variableReplacements): string
+    {
         $matches = [];
 
         $regexp = '/';               //Regexp start
         $regexp .= '<[\w>\"=\-: ]*'; //<tag> before section opening
-        $regexp .= "{{$blockname}}";      //section keyword
+        $regexp .= "$blockname";      //section keyword
         $regexp .= '<\/text:p>';     //</tag> after section opening
         $regexp .= '(.*)';           //text to repeat
         $regexp .= '<[\w>\"=\-: ]*'; //<tag> before section closing
-        $regexp .= "{\/{$blockname}}";    //section section keyword
+        $regexp .= "{\/$blockname}";    //section section keyword
         $regexp .= '<\/text:p>';    //</tag> after section opening
         $regexp .= '/m';            //Regexp end (m = multiline)
 
-        preg_match($regexp, $this->content, $matches);
-        $section_to_replace = $matches[0] ?? '';
+        preg_match($regexp, $text, $matches);
         $text_to_repeat = $matches[1] ?? '';
 
         $text_to_replace = "";
@@ -138,13 +145,15 @@ class OdtTemplateProcessor
             $text_to_replace .= $text_to_copy;
         }
 
-        $this->content = preg_replace($regexp, $text_to_replace, $this->content);
+        return preg_replace($regexp, $text_to_replace, $text);
     }
 
     public function saveAs($compiled_file)
     {
         $this->zip->deleteName('content.xml');
         $this->zip->addFromString('content.xml', $this->content);
+        $this->zip->deleteName('styles.xml');
+        $this->zip->addFromString('styles.xml', $this->styles);
         $this->zip->close();
 
         copy($this->temporary_template_file, $compiled_file);
