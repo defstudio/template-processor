@@ -85,7 +85,7 @@ class Template
                 ->replace('&', '&amp;');
         }
 
-        return $text;
+        return $text ?? '';
     }
 
     public function remove(string $block_name): self
