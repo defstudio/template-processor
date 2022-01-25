@@ -121,7 +121,7 @@ class OdtTemplateProcessor
 
         $regexp = '/';               //Regexp start
         $regexp .= '<[\w>\"=\-: ]*'; //<tag> before section opening
-        $regexp .= "$blockname";      //section keyword
+        $regexp .= "{{$blockname}}";      //section keyword
         $regexp .= '<\/text:p>';     //</tag> after section opening
         $regexp .= '(.*)';           //text to repeat
         $regexp .= '<[\w>\"=\-: ]*'; //<tag> before section closing
