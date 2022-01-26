@@ -29,6 +29,7 @@ use DefStudio\TemplateProcessor\Elements\Image;Template::from($dock_template_pat
             ],
             
             // will replace an image named ${signature} with the one passed as argument
+            // you can set the image name with [right click on image]→properties→options→Name
             'signature' => new Image(path: '/var/www/storage/app/signature.png', keep_ratio: true)) 
         ])  
         
