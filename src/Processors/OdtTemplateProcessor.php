@@ -1,25 +1,32 @@
 <?php
 /*
- * Copyright (C) 2021. Def Studio
+ * Copyright (C) 2022. Def Studio
  *  Unauthorized copying of this file, via any medium is strictly prohibited
  *  Authors: Fabio Ivona <fabio.ivona@defstudio.it> & Daniele Romeo <danieleromeo@defstudio.it>
  */
 
 /** @noinspection PhpUnhandledExceptionInspection */
 
-namespace DefStudio\TemplateProcessor\Helpers;
+namespace DefStudio\TemplateProcessor\Processors;
 
 use DefStudio\TemplateProcessor\Template;
+use File;
+use Image;
 use PhpOffice\PhpWord\Exception\CopyFileException;
 use PhpOffice\PhpWord\Exception\CreateTemporaryFileException;
 use ZipArchive;
+use function str;
 
 class OdtTemplateProcessor
 {
+
     private string $temporary_template_file;
     private ZipArchive $zip;
     private string $content;
     private string $styles;
+    private array $images = [
+
+    ];
 
     public function __construct(string $template)
     {
@@ -82,6 +89,26 @@ class OdtTemplateProcessor
 
 
         return $clean_text;
+    }
+
+    public function insert_image(string $key, Image $image)
+    {
+        if(!$image->valid()){
+            return;
+        }
+
+        $this->images[$image->uuid] = $image->path;
+
+        $image_name = "Image " . count($this->images);
+
+        $image = <<<IMG
+            <draw:frame draw:style-name="fr1" draw:name="$image_name" text:anchor-type="char" svg:x="{$image->position_x}cm" svg:y="{$image->position_y}cm" svg:width="{$image->width}cm" svg:height="{$image->height}cm" draw:z-index="0">
+                <draw:image xlink:href="Pictures/$image->uuid" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad" draw:mime-type="{$image->mime()}"/>
+            </draw:frame>
+        IMG;
+
+
+        $this->setValue($key, "");
     }
 
     public function setValue(string $key, string $value)
@@ -154,9 +181,21 @@ class OdtTemplateProcessor
         $this->zip->addFromString('content.xml', $this->content);
         $this->zip->deleteName('styles.xml');
         $this->zip->addFromString('styles.xml', $this->styles);
+        $this->add_images();
         $this->zip->close();
 
         copy($this->temporary_template_file, $compiled_file);
+    }
+
+    public function add_images(): void
+    {
+        if(empty($this->images)){
+            return;
+        }
+
+        foreach ($this->images as $uuid => $path){
+            $this->zip->addFile($path, "Pictures/$uuid");
+        }
     }
 
 }

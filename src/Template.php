@@ -7,8 +7,9 @@
 
 namespace DefStudio\TemplateProcessor;
 
+use DefStudio\TemplateProcessor\Elements\Image;
 use DefStudio\TemplateProcessor\Exceptions\TemplateProcessingException;
-use DefStudio\TemplateProcessor\Helpers\OdtTemplateProcessor;
+use DefStudio\TemplateProcessor\Processors\OdtTemplateProcessor;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -35,7 +36,7 @@ class Template
 
     protected string $compiled_file;
 
-    /** @var TemplateProcessor|OdtTemplateProcessor */
+    /** @var TemplateProcessor|\DefStudio\TemplateProcessor\Processors\OdtTemplateProcessor */
     protected $template_processor;
 
     public function __construct(string $template_file = '')
@@ -62,6 +63,12 @@ class Template
             }
         }
 
+        return $this;
+    }
+
+    public function insert_image(string $key, Image $image): self
+    {
+        $this->template_processor()->insert_image($key, $image);
         return $this;
     }
 
