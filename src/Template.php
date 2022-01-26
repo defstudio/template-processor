@@ -55,13 +55,19 @@ class Template
 
     public function compile(array $data): self
     {
-        foreach ($data as $key => $content) {
+        collect($data)->each(function ($content, $key) {
             if (is_array($content)) {
                 $this->clone($key, count($content), $content);
-            } else {
-                $this->set($key, $content);
+                return;
             }
-        }
+
+            if ($content instanceof Image) {
+                $this->insert_image($key, $content);
+                return;
+            }
+
+            $this->set($key, $content);
+        });
 
         return $this;
     }

@@ -9,13 +9,14 @@
 
 namespace DefStudio\TemplateProcessor\Processors;
 
+use DefStudio\TemplateProcessor\Elements\Image;
 use DefStudio\TemplateProcessor\Template;
-use File;
-use Image;
+use DOMDocument;
+use DOMElement;
+use Illuminate\Support\Str;
 use PhpOffice\PhpWord\Exception\CopyFileException;
 use PhpOffice\PhpWord\Exception\CreateTemporaryFileException;
 use ZipArchive;
-use function str;
 
 class OdtTemplateProcessor
 {
@@ -24,9 +25,10 @@ class OdtTemplateProcessor
     private ZipArchive $zip;
     private string $content;
     private string $styles;
-    private array $images = [
+    private DOMDocument $manifest;
 
-    ];
+    /** @var array<Image> */
+    private array $images = [];
 
     public function __construct(string $template)
     {
@@ -45,7 +47,8 @@ class OdtTemplateProcessor
 
         $this->content = $this->cleanup_text($this->zip->getFromName('content.xml'));
         $this->styles = $this->cleanup_text($this->zip->getFromName('styles.xml'));
-
+        $this->manifest = new DOMDocument();
+        $this->manifest->loadXML($this->zip->getFromName('META-INF/manifest.xml'));
     }
 
     private function cleanup_text(string $text): string
@@ -91,24 +94,40 @@ class OdtTemplateProcessor
         return $clean_text;
     }
 
-    public function insert_image(string $key, Image $image)
+    public function insert_image(string $key, \DefStudio\TemplateProcessor\Elements\Image $image)
     {
-        if(!$image->valid()){
+        if (!$image->valid()) {
             return;
         }
 
-        $this->images[$image->uuid] = $image->path;
+        $this->images[] = $image;
 
-        $image_name = "Image " . count($this->images);
+        $document = new DOMDocument();
+        $document->loadXML($this->content);
 
-        $image = <<<IMG
-            <draw:frame draw:style-name="fr1" draw:name="$image_name" text:anchor-type="char" svg:x="{$image->position_x}cm" svg:y="{$image->position_y}cm" svg:width="{$image->width}cm" svg:height="{$image->height}cm" draw:z-index="0">
-                <draw:image xlink:href="Pictures/$image->uuid" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad" draw:mime-type="{$image->mime()}"/>
-            </draw:frame>
-        IMG;
+        $dom_frames = $document->getElementsByTagName("frame");
+        foreach ($dom_frames as $dom_frame) {
+            /** @var DOMElement $dom_frame */
+            if ($dom_frame->getAttribute('draw:name') == '${'.$key.'}') {
+                /** @var DOMElement $dom_image */
+                $dom_image = $dom_frame->getElementsByTagName('image')->item(0);
+                $dom_image->setAttribute('xlink:href', "Pictures/$image->uuid");
+                $dom_frame->setAttribute('draw:name', $image->uuid);
 
+                if ($image->keep_ratio) {
+                    [$width, $height] = getimagesize($image->path);
+                    $ratio = $width / $height;
 
-        $this->setValue($key, "");
+                    $dom_width = Str::of($dom_frame->getAttribute('svg:width'))->remove('cm');
+                    $dom_width = floatval((string) $dom_width);
+
+                    $dom_height = $dom_width / $ratio;
+                    $dom_frame->setAttribute('svg:height', "{$dom_height}cm");
+                }
+            }
+        }
+
+        $this->content = $document->saveXML();
     }
 
     public function setValue(string $key, string $value)
@@ -119,13 +138,13 @@ class OdtTemplateProcessor
 
     private function replace_key(string $text, string $key, string $value): string
     {
-        $value = str($value)
+        $value = Str::of($value)
             ->replace("\r\n", Template::ODT_LINE_BREAK)
             ->replace("\n", Template::ODT_LINE_BREAK)
             ->replace('&amp;', '&')
             ->replace('&', '&amp;');
 
-        $text = str($text)
+        $text = Str::of($text)
             ->replace('${'.$key.'}', $value);
 
         return $text;
@@ -142,6 +161,7 @@ class OdtTemplateProcessor
         $this->styles = $this->applyCloneBlock($this->styles, $blockname, $clones, $variableReplacements);
     }
 
+    /** @noinspection PhpUnnecessaryCurlyVarSyntaxInspection */
     private function applyCloneBlock(string $text, string $blockname, int $clones, array $variableReplacements): string
     {
         $matches = [];
@@ -177,25 +197,57 @@ class OdtTemplateProcessor
 
     public function saveAs($compiled_file)
     {
+        $this->clean_orphaned_images();
+
         $this->zip->deleteName('content.xml');
         $this->zip->addFromString('content.xml', $this->content);
+
         $this->zip->deleteName('styles.xml');
         $this->zip->addFromString('styles.xml', $this->styles);
-        $this->add_images();
+
+        foreach ($this->images as $image) {
+            $this->zip->addFile($image->path, "Pictures/$image->uuid");
+
+            $dom_element = $this->manifest->createElement('manifest:file-entry');
+            $dom_element->setAttribute('manifest:full-path', "Pictures/$image->uuid");
+            $dom_element->setAttribute('manifest:media-type', $image->mime());
+            $this->manifest->getElementsByTagName('manifest')->item(0)->appendChild($dom_element);
+        }
+
+        $this->zip->deleteName('META-INF/manifest.xml');
+        $this->zip->addFromString('META-INF/manifest.xml', $this->manifest->saveXML());
+
         $this->zip->close();
+
 
         copy($this->temporary_template_file, $compiled_file);
     }
 
-    public function add_images(): void
+    public function clean_orphaned_images(): void
     {
-        if(empty($this->images)){
-            return;
-        }
+        for ($file_index = 0; $file_index < $this->zip->numFiles; $file_index++) {
+            $file_name = $this->zip->getNameIndex($file_index);
+            if (!$file_name) {
+                continue;
+            }
+            if (Str::of($file_name)->startsWith("Pictures/")) {
+                if (Str::of($this->content)->contains($file_name)) {
+                    continue;
+                }
 
-        foreach ($this->images as $uuid => $path){
-            $this->zip->addFile($path, "Pictures/$uuid");
+                if (Str::of($this->styles)->contains($file_name)) {
+                    continue;
+                }
+
+                $this->zip->deleteName($file_name);
+                $manifest_files = $this->manifest->getElementsByTagName('file-entry');
+                foreach ($manifest_files as $manifest_file) {
+                    /** @var DOMElement $manifest_file */
+                    if ($manifest_file->getAttribute('manifest:full-path') == $file_name) {
+                        $manifest_file->remove();
+                    }
+                }
+            }
         }
     }
-
 }

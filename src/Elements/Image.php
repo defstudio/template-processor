@@ -7,18 +7,18 @@
 
 namespace DefStudio\TemplateProcessor\Elements;
 
+use File;
+use Str;
+
 class Image
 {
-    private const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpg'];
+    private const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpg', 'image/jpeg'];
 
     public readonly string $uuid;
 
     public function __construct(
         public readonly string $path,
-        public readonly float $position_x,
-        public readonly float $position_y,
-        public readonly float $width,
-        public readonly float $height,
+        public readonly bool $keep_ratio = true,
     ) {
         $this->uuid = Str::of(Str::uuid())
             ->append('.')

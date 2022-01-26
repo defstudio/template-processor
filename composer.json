@@ -21,6 +21,7 @@
     ],
     "require": {
         "php": "^8.1",
+        "ext-dom": "*",
         "illuminate/support": "^8.0",
         "symfony/process": "^5.1",
         "defstudio/phpword": "^0.17.0"
