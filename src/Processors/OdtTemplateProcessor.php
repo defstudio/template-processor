@@ -168,11 +168,11 @@ class OdtTemplateProcessor
 
         $regexp = '/';               //Regexp start
         $regexp .= '<[\w>\"=\-: ]*'; //<tag> before section opening
-        $regexp .= "\${{$blockname}}";      //section keyword
+        $regexp .= "\\\${{$blockname}}";      //section keyword
         $regexp .= '<\/text:[a-z]*>';     //</tag> after section opening
         $regexp .= '(.*)';           //text to repeat
         $regexp .= '<[\w>\"=\-: ]*'; //<tag> before section closing
-        $regexp .= "\${\/$blockname}";    //section section keyword
+        $regexp .= "\\\${\/$blockname}";    //section section keyword
         $regexp .= '<\/text:[a-z]*>';    //</tag> after section opening
         $regexp .= '/m';            //Regexp end (m = multiline)
 

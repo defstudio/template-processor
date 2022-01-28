@@ -51,3 +51,9 @@ use DefStudio\TemplateProcessor\Elements\Image;Template::from($dock_template_pat
         // or returns a BinaryFileResponse
         ->download($dowloaded_file_name)
 ```
+
+
+
+### notes
+
+- template processor tries to cleanup its variables/block identifiers, if it is failing the detection, make sure to select and apply "cancel formatting" to them 
