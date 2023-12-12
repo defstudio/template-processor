@@ -49,7 +49,6 @@ class Template
         $this->template_file = $template_file;
         $this->compiled_file = "";
         $this->temporary_directory = "";
-
         $this->template_processor = null;
 
         return $this;
